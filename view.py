@@ -58,7 +58,9 @@ class MainWindow(wx.Frame):
         self.Show(True)
 
     def OnExit(self, e):
-        self.Close(True)
+        self.Close(True)     
+        self.capture.release()
+        cv2.destroyAllWindows()
 
     def OnAbout(self, e):
         dig = wx.MessageDialog(self, "一個防盜監視器", "關於防盜監視器")
@@ -86,7 +88,7 @@ class MultiInputDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnCancel, self.cancelBtn)
 
         self.xSizer = wx.BoxSizer()
-        self.fSizer = wx.GridSizer(rows = 4, cols = 2, vgap = 1, hgap = 1)
+        self.fSizer = wx.GridSizer(rows = 2, cols = 2, vgap = 1, hgap = 1)
         self.fSizer.Add(self.elabel, 1, wx.ALIGN_CENTER)
         self.fSizer.Add(self.einpuline, 1, wx.ALIGN_CENTER)
         #self.fSizer.Add(self.dlabel, 1, wx.ALIGN_CENTER)
@@ -105,8 +107,6 @@ class MultiInputDialog(wx.Dialog):
 
     def OnCancel(self, e):
         self.Close(True)
-        self.capture.release()
-        cv2.destroyAllWindows()
 
 class ShowCapture(wx.Panel):
     def __init__(self, parent, capture):
@@ -172,5 +172,5 @@ class ShowCapture(wx.Panel):
             self.bmp.CopyFromBuffer(frame)
             self.Refresh()
         
-        prevFrame = gray
+        self.prevFrame = gray
 
