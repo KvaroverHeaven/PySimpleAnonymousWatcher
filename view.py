@@ -24,11 +24,13 @@ import os.path
 import datetime
 import imutils
 import presentation
-
+import threading
+import requests
+import time
 
 class MainWindow(wx.Frame):
     def __init__(self, parent):
-        wx.Frame.__init__(self, parent, title="防盜監視器", size=(1600, 1200))
+        wx.Frame.__init__(self, parent, title="防盜監視器", size=(1000, 800))
         self.CreateStatusBar()
         xmenu = wx.Menu()
         self.panel = wx.Panel(self)
@@ -110,9 +112,10 @@ class MultiInputDialog(wx.Dialog):
 
 class ShowCapture(wx.Panel):
     def __init__(self, parent, capture):
-        wx.Panel.__init__(self, parent, wx.ID_ANY, size=(1600,1200))
+        wx.Panel.__init__(self, parent, wx.ID_ANY, size=(1000,800))
         self.prevFrame = None
         self.detectedTime = None
+        self.LastSendTime = None
 
         self.capture = capture
         ret, frame = self.capture.read()
@@ -120,14 +123,21 @@ class ShowCapture(wx.Panel):
         frame = imutils.resize(frame, height = (1000))
 
         height, width = frame.shape[:2]
-        parent.SetSize((width, height))
+        #parent.SetSize((width, height))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         self.bmp = wx.Bitmap.FromBuffer(width, height, frame)
         self.timer = wx.Timer(self)
-        self.timer.Start(1000./24)
+        self.timer.Start(1000./30)
         self.nstr = ""
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_TIMER, self.NextFrame)
+
+    def NotifyOwner(self, imgPath):
+        requests.post("https://yaoweb.azurewebsites.net/test.php", files={'file': open(imgPath, "rb")})
+        time.sleep(5)
+        requests.post("https://maker.ifttt.com/trigger/line/with/key/bkx-fUXwG4fuqYjlqplda6A7pAJXnRRyp1Qz_Q9sPfi",
+                data={"value1": '住家', "value2": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "value3": "https://yaoweb.azurewebsites.net/Images/{0}".format(os.path.split(imgPath)[1])})
+        presentation.sendWarningMail(imgPath)
 
     def OnPaint(self, evt):
         dc = wx.BufferedPaintDC(self)
@@ -135,42 +145,51 @@ class ShowCapture(wx.Panel):
 
     def NextFrame(self, event):
         ret, frame = self.capture.read()
-        frame = imutils.resize(frame, height = (1000))
+        frame = imutils.resize(frame, height=1000)
         text = "Safe"
+
+        if (self.detectedTime is not None):
+            if ((datetime.datetime.now() - self.detectedTime).seconds < 3):
+                text = "Detected!"
+            else:
+                text = "Safe"
+                self.detectedTime = None
+
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
         if (self.prevFrame is None):
             self.prevFrame = gray
         diffFrame = cv2.absdiff(self.prevFrame, gray)
         threshold = cv2.threshold(diffFrame, 25, 255, cv2.THRESH_BINARY)[1]
-        threshold = cv2.dilate(threshold, None, iterations=5)
-        contours = cv2.findContours(
-            threshold.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contours = imutils.grab_contours(contours)
-                
-        
+        threshold = cv2.dilate(threshold, None, iterations=15)
+        contours = cv2.findContours(threshold.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours = imutils.grab_contours(contours)   
 
         for c in contours:
-            if cv2.contourArea(c) < 20000:
-                continue
-            (x, y, w, h) = cv2.boundingRect(c)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            text = "Detected!"
-            if (self.detectedTime is None or (datetime.datetime.now() - self.detectedTime).seconds > 10):
+            if cv2.contourArea(c) > 20000:
+                (x, y, w, h) = cv2.boundingRect(c)
+                text = "Detected!"
                 self.detectedTime = datetime.datetime.now()
-                self.extension = self.detectedTime.strftime("%Y-%m-%d %H:%M:%S") + ".jpg"
-                cv2.imwrite(os.path.abspath(self.extension), frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
-                self.nstr = self.extension
+                if (self.LastSendTime is None or (datetime.datetime.now() - self.LastSendTime).seconds > 5):
+                    self.LastSendTime = datetime.datetime.now()
+                    self.extension = self.detectedTime.strftime("%Y%m%d%H%M%S") + ".jpg"
+
+                    imgPath = os.getcwd() + "/Images/" + self.extension
+                    cv2.imwrite(imgPath, frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                    self.nstr = imgPath
+
+                    t1 = threading.Thread(target= (lambda: self.NotifyOwner(imgPath)))
+                    t1.start()
+
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
         
-        cv2.putText(frame, "Room Status: {}".format(text), (10, 25),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-        cv2.putText(frame, datetime.datetime.now().strftime("Current Time: %Y-%m-%d %H:%M:%S"),
-                    (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        cv2.putText(frame, "Room Status: {}".format(text), (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        cv2.putText(frame, datetime.datetime.now().strftime("Current Time: %Y-%m-%d %H:%M:%S"), (10, 700), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)   
         
+        self.prevFrame = gray
+
         if ret:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.bmp.CopyFromBuffer(frame)
             self.Refresh()
-        
-        self.prevFrame = gray
 
