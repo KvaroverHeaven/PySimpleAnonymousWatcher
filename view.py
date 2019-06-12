@@ -136,7 +136,7 @@ class ShowCapture(wx.Panel):
         requests.post("https://yaoweb.azurewebsites.net/test.php", files={'file': open(imgPath, "rb")})
         time.sleep(5)
         requests.post("https://maker.ifttt.com/trigger/line/with/key/bkx-fUXwG4fuqYjlqplda6A7pAJXnRRyp1Qz_Q9sPfi",
-                data={"value1": '407', "value2": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "value3": "https://yaoweb.azurewebsites.net/Images/{0}".format(os.path.split(imgPath)[1])})
+                data={"value1": '住家', "value2": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "value3": "https://yaoweb.azurewebsites.net/Images/{0}".format(os.path.split(imgPath)[1])})
         presentation.sendWarningMail(imgPath)
 
     def OnPaint(self, evt):
@@ -161,7 +161,7 @@ class ShowCapture(wx.Panel):
             self.prevFrame = gray
         diffFrame = cv2.absdiff(self.prevFrame, gray)
         threshold = cv2.threshold(diffFrame, 25, 255, cv2.THRESH_BINARY)[1]
-        threshold = cv2.dilate(threshold, None, iterations=5)
+        threshold = cv2.dilate(threshold, None, iterations=15)
         contours = cv2.findContours(threshold.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours = imutils.grab_contours(contours)   
 
