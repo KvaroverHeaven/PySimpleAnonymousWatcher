@@ -24,7 +24,9 @@ import os.path
 import datetime
 import imutils
 import presentation
-
+import threading
+import requests
+import time
 
 class MainWindow(wx.Frame):
     def __init__(self, parent):
@@ -113,6 +115,7 @@ class ShowCapture(wx.Panel):
         wx.Panel.__init__(self, parent, wx.ID_ANY, size=(1000,800))
         self.prevFrame = None
         self.detectedTime = None
+        self.LastSendTime = None
 
         self.capture = capture
         ret, frame = self.capture.read()
@@ -128,6 +131,13 @@ class ShowCapture(wx.Panel):
         self.nstr = ""
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_TIMER, self.NextFrame)
+
+    def NotifyOwner(self, imgPath):
+        requests.post("https://yaoweb.azurewebsites.net/test.php", files={'file': open(imgPath, "rb")})
+        time.sleep(5)
+        requests.post("https://maker.ifttt.com/trigger/line/with/key/bkx-fUXwG4fuqYjlqplda6A7pAJXnRRyp1Qz_Q9sPfi",
+                data={"value1": '407', "value2": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "value3": "https://yaoweb.azurewebsites.net/Images/{0}".format(os.path.split(imgPath)[1])})
+        presentation.sendWarningMail(imgPath)
 
     def OnPaint(self, evt):
         dc = wx.BufferedPaintDC(self)
@@ -159,11 +169,18 @@ class ShowCapture(wx.Panel):
             if cv2.contourArea(c) > 20000:
                 (x, y, w, h) = cv2.boundingRect(c)
                 text = "Detected!"
-                if (self.detectedTime is None or (datetime.datetime.now() - self.detectedTime).seconds > 10):
-                    self.detectedTime = datetime.datetime.now()
-                    self.extension = self.detectedTime.strftime("%Y-%m-%d %H-%M-%S") + ".jpg"
-                    cv2.imwrite(os.getcwd() + "/Images/" + self.extension, frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
-                    self.nstr = self.extension
+                self.detectedTime = datetime.datetime.now()
+                if (self.LastSendTime is None or (datetime.datetime.now() - self.LastSendTime).seconds > 5):
+                    self.LastSendTime = datetime.datetime.now()
+                    self.extension = self.detectedTime.strftime("%Y%m%d%H%M%S") + ".jpg"
+
+                    imgPath = os.getcwd() + "/Images/" + self.extension
+                    cv2.imwrite(imgPath, frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                    self.nstr = imgPath
+
+                    t1 = threading.Thread(target= (lambda: self.NotifyOwner(imgPath)))
+                    t1.start()
+
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
         
         cv2.putText(frame, "Room Status: {}".format(text), (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
@@ -175,3 +192,4 @@ class ShowCapture(wx.Panel):
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.bmp.CopyFromBuffer(frame)
             self.Refresh()
+
