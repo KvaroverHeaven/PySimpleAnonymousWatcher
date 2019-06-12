@@ -21,15 +21,9 @@ import smtplib
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from time import sleep
 
 import cv2
-import pytesseract
-import requests
 import wx
-from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from twilio.rest import Client
 
 import model
 import view
@@ -158,7 +152,7 @@ def sendWarningSMS():
     
 
 def sendTemplateEmail(PositionZero, Starlight):
-    auth = ("", "")
+    auth = ("ntustmis11@gmail.com", "0pq^5o4RKAH]")
 
     try:
         server = smtplib.SMTP("smtp.gmail.com", 587)
