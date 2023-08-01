@@ -1,2 +1,2 @@
-# PysimpleAnonymousWatcher
-It's a example for school  homework.
+# PySimpleAnonymousWatcher
+Final Project for Software Programming 
