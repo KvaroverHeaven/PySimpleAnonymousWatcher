@@ -2,20 +2,20 @@
 
 """
     AnonymousWatcher
-    Copyright (C) 2019  Ardyn von Eizbern
+    Copyright (C) 2019, 2023  Relius Wang
 
     This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
+    it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import smtplib
 from email.mime.image import MIMEImage
@@ -42,6 +42,11 @@ def setData(emailstr):
 def getData():
     return model.parseXML()
 
+
+def getAcc():
+    return model.readXML()
+
+
 def sendWarningMail(png):
     img_data = open(png, 'rb').read()
     xMime = MIMEMultipart()
@@ -52,11 +57,11 @@ def sendWarningMail(png):
     xMime.attach(xMimeText)
     xMimeImage = MIMEImage(img_data, name=png)
     xMime.attach(xMimeImage)
-    
+
     xMime = xMime.as_string()
     sendTemplateEmail(getData()["Email"], xMime)
-    
-    
+
+
 def sendWarningSMS():
     # browser = webdriver.Chrome()
     # try:
@@ -89,12 +94,11 @@ def sendWarningSMS():
     # finally:
     #     browser.close()
 
-    
     # carriers = {
-    #     "att": "@txt.att.net",	    
+    #     "att": "@txt.att.net",
     #     "tmobile": "@tmomail.net",
-	#     "verizon": "@vtext.com",
-	#     "sprint": "@page.nextel.com",
+    #     "verizon": "@vtext.com",
+    #     "sprint": "@page.nextel.com",
     #     "cht": "",
     #     "twm": "@twmmms.catch.net.tw",
     #     "fet": "",
@@ -102,8 +106,8 @@ def sendWarningSMS():
     #     "chinamobile": "@139.com",
     #     "google": "@msg.fi.google.com"
     # }
-    
-    # phonenum = f"{nstring}{carriers['twm']}" 
+
+    # phonenum = f"{nstring}{carriers['twm']}"
 
     # sendTemplateEmail(nstring, "Attention User: Snake sneaks in home.")
 
@@ -149,10 +153,10 @@ def sendWarningSMS():
     #              )
 
     # print(message.body)
-    
+
 
 def sendTemplateEmail(PositionZero, Starlight):
-    auth = ("ntustmis11@gmail.com", "0pq^5o4RKAH]")
+    auth = (getAcc()["EMAIL"], getAcc()["PASS"])
 
     try:
         server = smtplib.SMTP("smtp.gmail.com", 587)
@@ -165,18 +169,19 @@ def sendTemplateEmail(PositionZero, Starlight):
         statustup3 = server.login(auth[0], auth[1])
     else:
         print("加密連線失敗")
-    
-    if(statustup3[0] == 235):   
+
+    if(statustup3[0] == 235):
         stautusfin = server.sendmail(auth[0], PositionZero, Starlight)
     else:
         print("登入失敗")
-    
+
     if(not stautusfin):
         print("寄信成功")
     else:
         print("寄信失敗", stautusfin)
-    
+
     server.quit()
+
 
 if __name__ == "__main__":
     sendWarningMail(None)

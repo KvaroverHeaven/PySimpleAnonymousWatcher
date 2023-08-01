@@ -2,20 +2,20 @@
 
 """
     AnonymousWatcher
-    Copyright (C) 2019  Ardyn von Eizbern, SeaBao(tony24862486@gmail.com)
+    Copyright (C) 2019, 2023  Relius Wang, SeaBao(tony24862486@gmail.com)
 
     This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
+    it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import wx
@@ -27,6 +27,7 @@ import presentation
 import threading
 import requests
 import time
+
 
 class MainWindow(wx.Frame):
     def __init__(self, parent):
@@ -60,7 +61,7 @@ class MainWindow(wx.Frame):
         self.Show(True)
 
     def OnExit(self, e):
-        self.Close(True)     
+        self.Close(True)
         self.capture.release()
         cv2.destroyAllWindows()
 
@@ -70,18 +71,18 @@ class MainWindow(wx.Frame):
         dig.Destroy()
 
     def OnLogin(self, e):
-        dig = MultiInputDialog(parent = self.panel)
-    
+        dig = MultiInputDialog(parent=self.panel)
+
     def OnSendMail(self, e):
         presentation.sendWarningMail(self.cap.nstr)
 
 
 class MultiInputDialog(wx.Dialog):
     def __init__(self, parent):
-        wx.Dialog.__init__(self, parent, title = "輸入資料", size = (800, 300))
-        self.panel = wx.Panel(self,wx.ID_ANY)
-        self.elabel = wx.StaticText(self.panel, label="電子郵件：", size = (300, -1))
-        self.einpuline = wx.TextCtrl(self.panel, size = (250, -1))
+        wx.Dialog.__init__(self, parent, title="輸入資料", size=(800, 300))
+        self.panel = wx.Panel(self, wx.ID_ANY)
+        self.elabel = wx.StaticText(self.panel, label="電子郵件：", size=(300, -1))
+        self.einpuline = wx.TextCtrl(self.panel, size=(250, -1))
         #self.dlabel = wx.StaticText(self.panel, label="電話號碼：", size = (300, -1))
         #self.dinpuline = wx.TextCtrl(self.panel, size = (250, -1))
         self.confirmBtn = wx.Button(self.panel, wx.ID_ANY, "確認")
@@ -90,7 +91,7 @@ class MultiInputDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnCancel, self.cancelBtn)
 
         self.xSizer = wx.BoxSizer()
-        self.fSizer = wx.GridSizer(rows = 2, cols = 2, vgap = 1, hgap = 1)
+        self.fSizer = wx.GridSizer(rows=2, cols=2, vgap=1, hgap=1)
         self.fSizer.Add(self.elabel, 1, wx.ALIGN_CENTER)
         self.fSizer.Add(self.einpuline, 1, wx.ALIGN_CENTER)
         #self.fSizer.Add(self.dlabel, 1, wx.ALIGN_CENTER)
@@ -110,9 +111,10 @@ class MultiInputDialog(wx.Dialog):
     def OnCancel(self, e):
         self.Close(True)
 
+
 class ShowCapture(wx.Panel):
     def __init__(self, parent, capture):
-        wx.Panel.__init__(self, parent, wx.ID_ANY, size=(1000,800))
+        wx.Panel.__init__(self, parent, wx.ID_ANY, size=(1000, 800))
         self.prevFrame = None
         self.detectedTime = None
         self.LastSendTime = None
@@ -120,7 +122,7 @@ class ShowCapture(wx.Panel):
         self.capture = capture
         ret, frame = self.capture.read()
 
-        frame = imutils.resize(frame, height = (1000))
+        frame = imutils.resize(frame, height=(1000))
 
         height, width = frame.shape[:2]
         #parent.SetSize((width, height))
@@ -133,10 +135,11 @@ class ShowCapture(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.NextFrame)
 
     def NotifyOwner(self, imgPath):
-        requests.post("https://yaoweb.azurewebsites.net/test.php", files={'file': open(imgPath, "rb")})
+        requests.post("https://yaoweb.azurewebsites.net/test.php",
+                      files={'file': open(imgPath, "rb")})
         time.sleep(5)
         requests.post("https://maker.ifttt.com/trigger/line/with/key/bkx-fUXwG4fuqYjlqplda6A7pAJXnRRyp1Qz_Q9sPfi",
-                data={"value1": '住家', "value2": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "value3": "https://yaoweb.azurewebsites.net/Images/{0}".format(os.path.split(imgPath)[1])})
+                      data={"value1": '住家', "value2": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "value3": "https://yaoweb.azurewebsites.net/Images/{0}".format(os.path.split(imgPath)[1])})
         presentation.sendWarningMail(imgPath)
 
     def OnPaint(self, evt):
@@ -162,8 +165,9 @@ class ShowCapture(wx.Panel):
         diffFrame = cv2.absdiff(self.prevFrame, gray)
         threshold = cv2.threshold(diffFrame, 25, 255, cv2.THRESH_BINARY)[1]
         threshold = cv2.dilate(threshold, None, iterations=15)
-        contours = cv2.findContours(threshold.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contours = imutils.grab_contours(contours)   
+        contours = cv2.findContours(
+            threshold.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours = imutils.grab_contours(contours)
 
         for c in contours:
             if cv2.contourArea(c) > 20000:
@@ -172,24 +176,27 @@ class ShowCapture(wx.Panel):
                 self.detectedTime = datetime.datetime.now()
                 if (self.LastSendTime is None or (datetime.datetime.now() - self.LastSendTime).seconds > 5):
                     self.LastSendTime = datetime.datetime.now()
-                    self.extension = self.detectedTime.strftime("%Y%m%d%H%M%S") + ".jpg"
+                    self.extension = self.detectedTime.strftime(
+                        "%Y%m%d%H%M%S") + ".jpg"
 
                     imgPath = os.getcwd() + "/Images/" + self.extension
                     cv2.imwrite(imgPath, frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
                     self.nstr = imgPath
 
-                    t1 = threading.Thread(target= (lambda: self.NotifyOwner(imgPath)))
+                    t1 = threading.Thread(
+                        target=(lambda: self.NotifyOwner(imgPath)))
                     t1.start()
 
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        
-        cv2.putText(frame, "Room Status: {}".format(text), (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-        cv2.putText(frame, datetime.datetime.now().strftime("Current Time: %Y-%m-%d %H:%M:%S"), (10, 700), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)   
-        
+
+        cv2.putText(frame, "Room Status: {}".format(text), (10, 25),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        cv2.putText(frame, datetime.datetime.now().strftime(
+            "Current Time: %Y-%m-%d %H:%M:%S"), (10, 700), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+
         self.prevFrame = gray
 
         if ret:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.bmp.CopyFromBuffer(frame)
             self.Refresh()
-
