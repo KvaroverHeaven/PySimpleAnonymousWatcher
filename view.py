@@ -129,7 +129,7 @@ class ShowCapture(wx.Panel):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         self.bmp = wx.Bitmap.FromBuffer(width, height, frame)
         self.timer = wx.Timer(self)
-        self.timer.Start(1000./30)
+        self.timer.Start(1000//30)
         self.nstr = ""
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_TIMER, self.NextFrame)
